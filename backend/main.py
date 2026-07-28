@@ -5,14 +5,19 @@ from typing import List
 
 app = FastAPI(title="DataGuard Backend Engine")
 
-# CORS Setup (React Frontend Frontend Communication ke liye)
+# CORS Setup - Development ke liye sab domains allow kar rahe hain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"], # React Dev Server
+    allow_origins=["*"], # Har frontend origin se request accept karega
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request Models
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 # Response Models
 class UserRiskResponse(BaseModel):
@@ -29,11 +34,28 @@ class AlertResponse(BaseModel):
     msg: str
     level: str
 
-# 1. Endpoint: Fetch Dynamic User Risk Scores (AI Behavioral Output)
+
+# 🔑 0. Endpoint: Login Endpoint (ADDED FIX)
+@app.post("/api/login")
+def login(data: LoginRequest):
+    # Dummy authentication logic (Phase 3 mein DB / Password Hashing aayegi)
+    if data.email and data.password:
+        return {
+            "status": "success",
+            "message": "Login successful",
+            "token": "dataguard_jwt_secret_token_2026",
+            "user": {
+                "name": "Hajat Ali",
+                "email": data.email,
+                "role": "Admin"
+            }
+        }
+    raise HTTPException(status_code=400, detail="Invalid credentials")
+
+
+# 1. Endpoint: Fetch Dynamic User Risk Scores
 @app.get("/api/users/risk-scores", response_model=List[UserRiskResponse])
 def get_user_risk_scores():
-    # Phase 3 mein yeh data direct Database aur AI Model se aayega
-    # Abhi ke liye DB query simulation
     return [
         {
             "id": 1,
@@ -68,6 +90,7 @@ def get_user_risk_scores():
             "action": "System Config Update"
         }
     ]
+
 
 # 2. Endpoint: Fetch Live Security Alerts
 @app.get("/api/alerts", response_model=List[AlertResponse])
