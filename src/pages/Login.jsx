@@ -5,22 +5,42 @@ import { ShieldCheck, Mail, Lock, LogIn } from 'lucide-react';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
 
-    if (email && password) {
-      // 🟢 1. Protected Route ke liye Session Save karein
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Backend ne error bheja (jaise "Invalid credentials")
+        setError(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // 🟢 Real JWT token aur user info save karein
+      localStorage.setItem('token', data.token);
       localStorage.setItem('isAuthenticated', 'true');
-      
-      // 🟢 2. User info agar save karni ho
-      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('userRole', data.user.role);
 
-      // 🟢 3. Dashboard par redirect karein
       navigate('/dashboard');
-    } else {
-      alert('Lutfean Email aur Password dono enter karein!');
+    } catch (err) {
+      setError('Server se connect nahi ho paya. Backend chal raha hai?');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,7 +64,6 @@ const Login = () => {
         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
       }}>
         
-        {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
             <ShieldCheck color="#38bdf8" size={48} />
@@ -57,10 +76,23 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* 🔴 Error Message */}
+        {error && (
+          <div style={{
+            backgroundColor: '#7f1d1d',
+            color: '#fecaca',
+            padding: '10px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleLogin}>
           
-          {/* Email Field */}
           <div style={{ marginBottom: '18px' }}>
             <label style={{ display: 'block', color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>
               Email Address
@@ -88,7 +120,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Password Field */}
           <div style={{ marginBottom: '22px' }}>
             <label style={{ display: 'block', color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>
               Password
@@ -116,19 +147,19 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button 
             type="submit"
+            disabled={loading}
             style={{
               width: '100%',
-              backgroundColor: '#0284c7',
+              backgroundColor: loading ? '#334155' : '#0284c7',
               color: 'white',
               border: 'none',
               padding: '12px',
               borderRadius: '8px',
               fontWeight: 'bold',
               fontSize: '15px',
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -136,11 +167,10 @@ const Login = () => {
               boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.4)'
             }}
           >
-            <LogIn size={18} /> Login to Hub
+            <LogIn size={18} /> {loading ? 'Logging in...' : 'Login to Hub'}
           </button>
         </form>
 
-        {/* Signup Redirect Link */}
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#94a3b8' }}>
           Don't have an account?{' '}
           <Link to="/signup" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 'bold' }}>
