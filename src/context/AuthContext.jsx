@@ -18,8 +18,13 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
 
     if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
+      try {
+        setUser(JSON.parse(storedUser));
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error("Error parsing stored user data", e);
+        localStorage.clear();
+      }
     }
     setLoading(false);
   }, []);
@@ -27,16 +32,18 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/api/login', { email, password });
-      
+
       if (response.data && response.data.status === 'success') {
-        const { token, user } = response.data;
-        
+        // Support both access_token and token keys
+        const authToken = response.data.access_token || response.data.token;
+        const userData = response.data.user;
+
         // Persist token and user in localStorage
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isAuthenticated', 'true');
-        
-        setUser(user);
+
+        setUser(userData);
         setIsAuthenticated(true);
         navigate('/dashboard');
         return { success: true };
@@ -53,9 +60,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail'); // For backward compatibility if used elsewhere
-    localStorage.removeItem('userRole'); // For backward compatibility if used elsewhere
-    
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+
     setUser(null);
     setIsAuthenticated(false);
     navigate('/');

@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 import models
 from database import engine, get_db
@@ -16,14 +15,15 @@ import auth
 
 app = FastAPI(title="DataGuard Backend Engine")
 
+# CORS Settings (Aapke Frontend Port ke sath complete integration ke liye)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
-
 class UserRegister(BaseModel):
     name: str
     email: str
@@ -134,6 +134,8 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     return {
         "status": "success",
         "message": "User registered successfully",
+        "access_token": access_token,
+        "token_type": "bearer",
         "token": access_token,
         "user": {
             "id": new_user.id,
@@ -155,6 +157,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return {
         "status": "success",
         "message": "Login successful",
+        "access_token": access_token,
+        "token_type": "bearer",
         "token": access_token,
         "user": {
             "id": user.id,

@@ -1,15 +1,14 @@
 import os
 from pathlib import Path
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 
-# Project Root directory se .env file ko automatically locate karne ke liye
+# Project root directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_path = BASE_DIR / ".env"
 
-# Explicit path ke sath load karein (Agar pehla rasta fail ho toh current folder try karein)
+# Load .env file
 if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 else:
@@ -17,23 +16,45 @@ else:
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Diagnostic Check: Direct clear error message agar URL Na mile
+# Check if DATABASE_URL exists
 if not DATABASE_URL:
     raise ValueError(
-        "\n\n❌ ERROR: DATABASE_URL variable .env file mein nahi mila!\n"
-        "Please check karein ke aapki .env file mein line majood hai:\n"
+        "\n❌ ERROR: DATABASE_URL not found in .env file!\n"
+        "Please add:\n"
         "DATABASE_URL=postgresql://...\n"
     )
 
-# Neon PostgreSQL integration fix for SQLAlchemy (postgres:// -> postgresql://)
+# Convert old postgres:// URL if needed
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# SQLAlchemy Engine (Optimized for Neon PostgreSQL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,      # Check connection before using
+    pool_recycle=300,        # Reconnect every 5 minutes
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_reset_on_return="rollback",
+    echo=False,
+)
 
+# Session Factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+# Base Model
 Base = declarative_base()
 
+# Dependency
 def get_db():
     db = SessionLocal()
     try:
