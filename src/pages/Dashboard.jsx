@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
   AlertTriangle, 
@@ -9,9 +8,11 @@ import {
   Bell,
   LogOut 
 } from 'lucide-react';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   // Dynamic State variables connected to Backend API
   const [userRisks, setUserRisks] = useState([]);
@@ -22,25 +23,13 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('token'); // JWT authentication token
-
-        // API Call for Risk Scores (FastAPI Endpoint)
-        const responseRisks = await fetch('http://localhost:8000/api/users/risk-scores', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (responseRisks.ok) {
-          const data = await responseRisks.json();
-          setUserRisks(data);
-        }
+        // API Call for Risk Scores (FastAPI Endpoint) via Axios interceptors
+        const responseRisks = await api.get('/api/users/risk-scores');
+        setUserRisks(responseRisks.data);
 
         // API Call for Live Security Alerts
-        const responseAlerts = await fetch('http://localhost:8000/api/alerts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (responseAlerts.ok) {
-          const alertData = await responseAlerts.json();
-          setAlerts(alertData);
-        }
+        const responseAlerts = await api.get('/api/alerts');
+        setAlerts(responseAlerts.data);
 
       } catch (error) {
         console.error("Error connecting to Data-Guard Backend:", error);
@@ -54,10 +43,7 @@ const Dashboard = () => {
 
   // Logout Function
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-    navigate("/"); // Redirect to Login page
+    logout();
   };
 
   return (
@@ -90,7 +76,7 @@ const Dashboard = () => {
           
           <div style={{ backgroundColor: '#1e293b', padding: '8px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
             <span style={{ fontSize: '14px', color: '#38bdf8', fontWeight: '600' }}>
-              {localStorage.getItem('userEmail') || 'User'} · {localStorage.getItem('userRole') || 'Role'}
+              {user?.name || user?.email || 'User'} · {user?.role || 'Role'}
             </span>
           </div>
 

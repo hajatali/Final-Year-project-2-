@@ -18,7 +18,7 @@ SECRET_KEY = os.getenv(
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 
 def get_password_hash(password: str) -> str:
@@ -52,11 +52,11 @@ def create_access_token(data: dict) -> str:
 
 
 def get_current_user(
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> models.User:
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status_code=401,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )

@@ -1,47 +1,27 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, LogIn } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Backend ne error bheja (jaise "Invalid credentials")
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
-      // 🟢 Real JWT token aur user info save karein
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('userRole', data.user.role);
-
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Server se connect nahi ho paya. Backend chal raha hai?');
-    } finally {
-      setLoading(false);
+    const result = await login(email, password);
+    
+    if (!result.success) {
+      setError(result.error || 'Login failed');
     }
+    
+    setLoading(false);
   };
 
   return (
